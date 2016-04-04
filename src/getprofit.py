@@ -100,7 +100,7 @@ def multi_thread(threads, method):
     conn.commit()
     cur.close()
     conn.close()
-    
+
     while is_unfinished:
         while threading.active_count() < 20:
             task = 500000
