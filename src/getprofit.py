@@ -1,5 +1,6 @@
 # _*_ coding: utf8 _*_
 
+import threading
 import time
 import datetime
 import sqlite3
@@ -38,7 +39,7 @@ def get_holder_profit(stockid, date):
     return holder_profit, date_start, date_end, price_start, price_end
 
 # pull out holder portfolio and add a column of profit
-def create_table_profit():
+def create_table_profit(task):
     conn = sqlite3.connect('stock.sqlite3')
     cur = conn.cursor()
     try:
@@ -75,7 +76,7 @@ def create_table_profit():
         profit_entry.append(upto_date)
         profit_entry.append(report_date)
         profit_entry.extend(holder_profit)
-         
+        
         print profit_entry
         cur.execute("INSERT OR IGNORE INTO Holderprofit VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", profit_entry)
         cur.execute('INSERT OR IGNORE INTO Recover (rowid, recovername, recoverposition) VALUES (?, ?, ?)', 
@@ -89,5 +90,21 @@ def create_table_profit():
     cur.close()
     conn.close()
     
+def multi_thread(threads, method):
+    conn = sqlite3.connect('stock.sqlite3')
+    cur = conn.cursor()
+    cur.execute("CREATE TABLE IF NOT EXISTS Unfinishedtasks (rowid INTEGER PRIMARY KEY, assigned BOOLEAN DEFAULT 0) WITHOUT ROWID")
+    cur.execute("INSERT INTO Unfinishedtasks (rowid, assigned) SELECT Majorholderinfo.rowid, 0 FROM Majorholderinfo LEFT OUTER JOIN Holderprofit on Holderprofit.rowid = Majorholderinfo.rowid WHERE ((Holderprofit.rowid) IS NULL AND Majorholderinfo.rowid > (SELECT MAX(Holderprofit.rowid) FROM Holderprofit) AND NOT EXISTS (SELECT * FROM Unfinishedtasks))")
+    unfinished = cur.execute("SELECT * FROM Unfinishedtasks LIMIT 1").fetchone()
+    is_unfinished = len(unfinished)
+    conn.commit()
+    cur.close()
+    conn.close()
+    
+    while is_unfinished:
+        while threading.active_count() < 20:
+            task = 500000
+            threading.Thread(target=method, args=task).start()
 if __name__ == '__main__':    
-    create_table_profit()
+    #create_table_profit()
+    multi_thread(0, 0)
