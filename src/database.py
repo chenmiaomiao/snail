@@ -1,5 +1,7 @@
 import sqlite3
 
+print "hello, world"
+
 conn = sqlite3.connect('stock.sqlite3')
 cur = conn.cursor()
 
