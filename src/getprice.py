@@ -45,7 +45,7 @@ class stock_price:
         except:
             trying_times += 1
             print "Network failure. Retried %d time(s)." % trying_times
-            time.sleep(2**trying_times)
+            time.sleep(trying_times)
             return self.get_price_all(stockid, startdate, enddate, trying_times)
     
     # get the close price of a period
