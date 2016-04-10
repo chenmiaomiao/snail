@@ -32,13 +32,12 @@ def get_holder_profit(stockid, date):
         if price_end_full != None:
             price_end = price_end_full[0]
             date_end = price_end_full[1]
-        else:
-            return None
-    else:
-        return None
+            holder_profit = (float(price_end) - float(price_start))/float(price_start)
+            
+            return holder_profit, date_start, date_end, price_start, price_end
     
-    holder_profit = (float(price_end) - float(price_start))/float(price_start)
-    return holder_profit, date_start, date_end, price_start, price_end
+    return None
+
 
 # pull out holder portfolio and add a column of profit
 def create_table_profit(task_rowid):    
@@ -84,7 +83,7 @@ def create_table_profit(task_rowid):
     thread_conn[threading.current_thread().name]['conn'].close()
     # lock.release()
     
-    del thread_conn[threading.current_thread().name]
+    #del thread_conn[threading.current_thread().name]
     
 def multi_thread(threads, method):
 
@@ -93,21 +92,28 @@ def multi_thread(threads, method):
     cur.execute("INSERT OR IGNORE INTO Unfinishedtasks (rowid, assigned) SELECT Majorholderinfo.rowid, 0 FROM Majorholderinfo LEFT OUTER JOIN Holderprofit on Holderprofit.rowid = Majorholderinfo.rowid WHERE (((Holderprofit.rowid) IS NULL AND Majorholderinfo.rowid > (SELECT MAX(Holderprofit.rowid) FROM Holderprofit)) OR ((SELECT COUNT(Holderprofit.rowid) FROM Holderprofit) = 0))")
     cur.execute("UPDATE Unfinishedtasks SET assigned = 0")
     unfinished = cur.execute("SELECT * FROM Unfinishedtasks LIMIT 1").fetchone()
-    is_unfinished = len(unfinished)
+    if unfinished != None:
+        is_unfinished = True
+    else:
+        is_unfinished = False
     conn.commit()
 
     while is_unfinished:
         while threading.active_count() < threads:
+            lock.acquire()
             task = cur.execute("SELECT rowid FROM Unfinishedtasks WHERE assigned = 0 ORDER BY rowid ASC LIMIT 1 ").fetchone()
+            lock.release()
             
             if task != None: 
                 task_rowid = task[0]
             else:
-                is_unfinished = 0
+                is_unfinished = False
                 break
-                
+            
+            lock.acquire()    
             cur.execute("UPDATE Unfinishedtasks SET assigned = ? WHERE rowid = ? ", (1, task_rowid))
             conn.commit()
+            lock.release()
                         
             threading.Thread(target=method, args=(task_rowid, )).start()
                         

@@ -2,6 +2,7 @@
 
 import time
 import urllib
+import urllib2
 import json
 from datetime import datetime, timedelta
 
@@ -19,7 +20,8 @@ def gen_full_url(stockid, startdate, enddate):
     stockid = str(stockid)
     startdate = date_interconvert(startdate)
     enddate = date_interconvert(enddate)
-    full_url = 'http://q.stock.sohu.com'+ '/hisHq?code=cn_' + stockid + '&start=' + startdate + '&end=' + enddate        
+    full_url = 'http://q.stock.sohu.com'+ '/hisHq?code=cn_' + stockid + '&start=' + startdate + '&end=' + enddate
+    # full_url = 'http://www.pydev.org/manual_adv_debugger.html'     
     return full_url
 
 # get the prices of a period
@@ -37,7 +39,8 @@ def get_price_all(stockid, startdate, enddate, trying_times = 0):
         trying_times += 1
         print "Network failure. Retried %d time(s)." % trying_times
         time.sleep(trying_times)
-        return get_price_all(stockid, startdate, enddate, trying_times)
+        # return get_price_all(stockid, startdate, enddate, trying_times)
+        return []
 
 # get the close price of a period
 def get_price_close_all(stockid, startdate, enddate):
