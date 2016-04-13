@@ -28,7 +28,8 @@ def gen_full_url(stockid, startdate, enddate):
 def get_price_all(stockid, startdate, enddate, trying_times = 0):
     try:
         full_url = gen_full_url(stockid, startdate, enddate)
-        html = urllib.urlopen(full_url).read()
+        # html = urllib.urlopen(full_url).read()
+        html = []
         market_info = json.loads(html)
         try:
             price_all = market_info[0]['hq']
