@@ -3,10 +3,12 @@
 import time
 import urllib
 import urllib2
+import httplib
 import json
 from datetime import datetime, timedelta
+from _socket import timeout
 
-#http://q.stock.sohu.com/hisHq?code=cn_600028&start=20150918&end=20160115&stat=1&order=D&period=d&callback=historySearchHandler&rt=jsonp&r=0.5620633495524285&0.07780711725972944
+# http://q.stock.sohu.com/hisHq?code=cn_600028&start=20150918&end=20160115&stat=1&order=D&period=d&callback=historySearchHandler&rt=jsonp&r=0.5620633495524285&0.07780711725972944
 
 # convert date to string, vice versa
 def date_interconvert(date_data):
@@ -21,15 +23,19 @@ def gen_full_url(stockid, startdate, enddate):
     startdate = date_interconvert(startdate)
     enddate = date_interconvert(enddate)
     full_url = 'http://q.stock.sohu.com'+ '/hisHq?code=cn_' + stockid + '&start=' + startdate + '&end=' + enddate
+    full_url_without_root = '/hisHq?code=cn_' + stockid + '&start=' + startdate + '&end=' + enddate
     # full_url = 'http://www.pydev.org/manual_adv_debugger.html'     
-    return full_url
+    return full_url, full_url_without_root
 
 # get the prices of a period
 def get_price_all(stockid, startdate, enddate, trying_times = 0):
     try:
-        full_url = gen_full_url(stockid, startdate, enddate)
-        # html = urllib.urlopen(full_url).read()
-        html = []
+        full_url, full_url_withou_root = gen_full_url(stockid, startdate, enddate)
+        #html = urllib.urlopen(full_url).read()
+        conn = httplib.HTTPConnection("q.stock.sohu.com", timeout=5)
+        conn.request('GET', full_url_withou_root)
+        r1 = conn.getresponse()
+        html = r1.read()
         market_info = json.loads(html)
         try:
             price_all = market_info[0]['hq']
@@ -37,10 +43,11 @@ def get_price_all(stockid, startdate, enddate, trying_times = 0):
             price_all = []
         return price_all
     except:
-        trying_times += 1
-        print "Network failure. Retried %d time(s)." % trying_times
-        time.sleep(trying_times)
+        # trying_times += 1
+        # print "Network failure. Retried %d time(s)." % trying_times
+        # time.sleep(trying_times)
         # return get_price_all(stockid, startdate, enddate, trying_times)
+        print 'Time out!'
         return []
 
 # get the close price of a period
@@ -85,6 +92,12 @@ def get_price_close(stockid, date, fuzzy_mode = True, fuzzy_forward = True):
                     date_end = date + timedelta(90*fuzzy_direction)
                     print 'Stockid: %s, date Start: %s. Gotten.' % (stockid, date)
                     break
+    
+    #===========================================================================
+    # price_close = 30
+    # date = 0
+    # date_end = 0 
+    #===========================================================================
     
     if price_close == None: 
         return price_close
