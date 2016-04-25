@@ -40,13 +40,13 @@ def get_holder_profit(stockid, date):
 
 
 # pull out holder portfolio and add a column of profit
-def create_table_profit(task_rowid):    
-    #lock.acquire()
+def create_table_profit(task_rowid):  
+    # lock.acquire()
     thread_conn = dict()
     thread_conn[threading.current_thread().name] = {'conn' : sqlite3.connect('stock.sqlite3'), }
     # thread_conn[threading.current_thread().name]['cur'] = thread_conn[threading.current_thread().name]['conn'].cursor()
     result_item = thread_conn[threading.current_thread().name]['conn'].execute("SELECT rowid, holderid, stockid, uptodate, reportdate FROM Majorholderinfo WHERE rowid = ? AND holderid <> -1 AND uptodate <> -1 AND reportdate <> -1 AND holderid <> 'Regex error' AND uptodate <> 'Regex error' AND reportdate <> 'Regex error' ORDER BY rowid ASC", (task_rowid, )).fetchone()
-    #lock.release()
+    # lock.release()
     
     profit_found = False
     if result_item != None:
@@ -55,10 +55,10 @@ def create_table_profit(task_rowid):
         stock_id = result_item[2]
         upto_date =  result_item[3]
         report_date = result_item[4]
-        #lock.acquire()
+        # lock.acquire()
         upto_date_timef = date_interconvert(upto_date)
         report_date_timef = date_interconvert(report_date)
-        #lock.release()
+        # lock.release()
         max_date = get_max_date(upto_date_timef, report_date_timef)
         holder_profit = get_holder_profit(stock_id, max_date)
          
@@ -76,22 +76,19 @@ def create_table_profit(task_rowid):
             profit_found = True
             
             
-    #lock.acquire()
+    # lock.acquire()
     print task_rowid
-    #===========================================================================
-    # if profit_found:
-    #     thread_conn[threading.current_thread().name]['conn'].execute("INSERT OR IGNORE INTO Holderprofit VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", profit_entry)
-    #===========================================================================
+    if profit_found:
+        thread_conn[threading.current_thread().name]['conn'].execute("INSERT OR IGNORE INTO Holderprofit VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", profit_entry)
     thread_conn[threading.current_thread().name]['conn'].execute("DELETE FROM Unfinishedtasks WHERE rowid = ?", (task_rowid, ))
     thread_conn[threading.current_thread().name]['conn'].commit()
     # thread_conn[threading.current_thread().name]['cur'].close()
     thread_conn[threading.current_thread().name]['conn'].close()
-    #lock.release()
+    # lock.release()
     
     #del thread_conn[threading.current_thread().name]
     
-def multi_thread(threads, method):
-
+def multi_thread(threads, method):    
     cur.execute("CREATE TABLE IF NOT EXISTS Unfinishedtasks (rowid INTEGER PRIMARY KEY, assigned BOOLEAN DEFAULT 0) WITHOUT ROWID")
     cur.execute("CREATE TABLE IF NOT EXISTS Holderprofit (rowid INTEGER PRIMARY KEY, holderid TEXT, stockid TEXT, uptodate TEXT, reportdate TEXT, holderprofit REAL, startdate TEXT, enddate TEXT, startprice TEXT, endprice TEXT)")
     cur.execute("INSERT OR IGNORE INTO Unfinishedtasks (rowid, assigned) SELECT Majorholderinfo.rowid, 0 FROM Majorholderinfo LEFT OUTER JOIN Holderprofit on Holderprofit.rowid = Majorholderinfo.rowid WHERE (((Holderprofit.rowid) IS NULL AND Majorholderinfo.rowid > (SELECT MAX(Holderprofit.rowid) FROM Holderprofit)) OR ((SELECT COUNT(Holderprofit.rowid) FROM Holderprofit) = 0))")
@@ -122,7 +119,7 @@ def multi_thread(threads, method):
             #lock.release()
                         
             threading.Thread(target=method, args=(task_rowid, )).start()
-                        
+            
     print 'Bingo!'
     
 if __name__ == '__main__':    
