@@ -10,6 +10,22 @@ from _socket import timeout
 
 # http://q.stock.sohu.com/hisHq?code=cn_600028&start=20150918&end=20160115&stat=1&order=D&period=d&callback=historySearchHandler&rt=jsonp&r=0.5620633495524285&0.07780711725972944
 
+def gen_headers(host, referer):
+    header = {}
+    
+    header['Host'] = host
+    header['Connection'] = 'keep-alive'
+    header['Cache-Control'] = 'max-age=0'
+    header['Accept'] = 'text/html, */*; q=0.01'
+    header['X-Requested-With'] = 'XMLHttpRequest'
+    header['User-Agent'] = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebkit/537.36 (KHTML, like Gecko) Chrome/41.0.2272.89 Safari/537.36'
+    header['DNT'] = '1'
+    header['Referer'] = referer
+    header['Accept-Encoding'] = 'gzip, deflate, sdch'
+    header['Accept-Language'] = 'zh-CN,zh;q=0.8,ja;q=0.6'
+    
+    return header
+    
 # convert date to string, vice versa
 def date_interconvert(date_data):
     if type(date_data) != datetime:
@@ -29,13 +45,26 @@ def gen_full_url(stockid, startdate, enddate):
 
 # get the prices of a period
 def get_price_all(stockid, startdate, enddate, trying_times = 0):
+    host = 'q.stock.sohu.com'
+    referer = 'http://q.stock.sohu.com/cn/000002/index.shtml'
+    header = gen_headers(host, referer)
+    
+    full_url, full_url_withou_root = gen_full_url(stockid, startdate, enddate)
+    
     try:
-        full_url, full_url_withou_root = gen_full_url(stockid, startdate, enddate)
-        #html = urllib.urlopen(full_url).read()
-        conn = httplib.HTTPConnection("q.stock.sohu.com", timeout=5)
-        conn.request('GET', full_url_withou_root)
-        r1 = conn.getresponse()
-        html = r1.read()
+        
+        # html = urllib.urlopen(full_url).read()
+        #=======================================================================
+        # conn = httplib.HTTPConnection("q.stock.sohu.com", timeout=5)
+        # conn.request('GET', full_url_withou_root)
+        # rsp = conn.getresponse()
+        # html = rsp.read()
+        #=======================================================================
+        data = None
+        req = urllib2.Request(full_url, data, header)
+        respnse = urllib2.urlopen(req, timeout = 10)
+        html = respnse.read()
+        
         market_info = json.loads(html)
         try:
             price_all = market_info[0]['hq']
