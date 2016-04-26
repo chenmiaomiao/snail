@@ -55,10 +55,10 @@ def create_table_profit(task_rowid):
         stock_id = result_item[2]
         upto_date =  result_item[3]
         report_date = result_item[4]
-        # lock.acquire()
+        lock.acquire()
         upto_date_timef = date_interconvert(upto_date)
         report_date_timef = date_interconvert(report_date)
-        # lock.release()
+        lock.release()
         max_date = get_max_date(upto_date_timef, report_date_timef)
         holder_profit = get_holder_profit(stock_id, max_date)
          
