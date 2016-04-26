@@ -7,24 +7,26 @@ import httplib
 import json
 from datetime import datetime, timedelta
 from _socket import timeout
+from urllib2 import URLError
 
 # http://q.stock.sohu.com/hisHq?code=cn_600028&start=20150918&end=20160115&stat=1&order=D&period=d&callback=historySearchHandler&rt=jsonp&r=0.5620633495524285&0.07780711725972944
 
 def gen_headers(host, referer):
-    header = {}
+    headers = {}
     
-    header['Host'] = host
-    header['Connection'] = 'keep-alive'
-    header['Cache-Control'] = 'max-age=0'
-    header['Accept'] = 'text/html, */*; q=0.01'
-    header['X-Requested-With'] = 'XMLHttpRequest'
-    header['User-Agent'] = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebkit/537.36 (KHTML, like Gecko) Chrome/41.0.2272.89 Safari/537.36'
-    header['DNT'] = '1'
-    header['Referer'] = referer
-    header['Accept-Encoding'] = 'gzip, deflate, sdch'
-    header['Accept-Language'] = 'zh-CN,zh;q=0.8,ja;q=0.6'
-    
-    return header
+    headers['Host'] = host
+    headers['Referer'] = referer
+    headers['User-Agent'] = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebkit/537.36 (KHTML, like Gecko) Chrome/41.0.2272.89 Safari/537.36'
+    headers['Accept-Language'] = 'zh-CN,zh;q=0.8,ja;q=0.6, en-us;0.4'
+    # headers['Accept-Encoding'] = 'gzip, deflate, sdch'
+    headers['Keep-Alive'] = '300'
+    headers['Connection'] = 'keep-alive'
+    headers['Cache-Control'] = 'max-age=0'
+    headers['Accept'] = 'text/html, */*; q=0.01'
+    headers['X-Requested-With'] = 'XMLHttpRequest'
+    headers['DNT'] = '1'
+
+    return headers
     
 # convert date to string, vice versa
 def date_interconvert(date_data):
@@ -44,39 +46,51 @@ def gen_full_url(stockid, startdate, enddate):
     return full_url, full_url_without_root
 
 # get the prices of a period
-def get_price_all(stockid, startdate, enddate, trying_times = 0):
+def get_price_all(stockid, startdate, enddate, tried_times = 0, timeout = 3):
+    stockid_str = str(stockid)
+    
     host = 'q.stock.sohu.com'
-    referer = 'http://q.stock.sohu.com/cn/000002/index.shtml'
+    referer = 'http://q.stock.sohu.com/cn/'+stockid_str+'/index.shtml'
     header = gen_headers(host, referer)
     
     full_url, full_url_withou_root = gen_full_url(stockid, startdate, enddate)
     
     try:
-        
         # html = urllib.urlopen(full_url).read()
         #=======================================================================
-        # conn = httplib.HTTPConnection("q.stock.sohu.com", timeout=5)
+        # conn = httplib.HTTPConnection("q.stock.sohu.com", timeout = timeout)
         # conn.request('GET', full_url_withou_root)
         # rsp = conn.getresponse()
         # html = rsp.read()
         #=======================================================================
         data = None
         req = urllib2.Request(full_url, data, header)
-        respnse = urllib2.urlopen(req, timeout = 10)
+        respnse = urllib2.urlopen(req, timeout = timeout)
         html = respnse.read()
-        
         market_info = json.loads(html)
+        
         try:
             price_all = market_info[0]['hq']
         except:
             price_all = []
+            
         return price_all
-    except:
-        # trying_times += 1
-        # print "Network failure. Retried %d time(s)." % trying_times
-        # time.sleep(trying_times)
-        # return get_price_all(stockid, startdate, enddate, trying_times)
-        print 'Time out!'
+    except URLError, e:
+        if 'timed out' in str(e) and tried_times <= 10:
+            tried_times += 1
+            print 'Time out. Retried %d time(s).' % tried_times
+            time.sleep(tried_times*tried_times)
+            return get_price_all(stockid, startdate, enddate, tried_times)
+        elif 'failed' in str(e) and tried_times <= 10:
+            tried_times += 1
+            print 'Network failure. Retried %d time(s).' % tried_times
+            time.sleep(tried_times*tried_times)
+            return get_price_all(stockid, startdate, enddate, tried_times)
+        else:
+            print 'Sorry, I have tried my best! Already tried %d time(s).' % tried_times
+            return []
+    except Exception, e:
+        print 'Sorry, I cannot get it! The error is %s' % e
         return []
 
 # get the close price of a period
