@@ -77,7 +77,6 @@ def create_table_profit(task_rowid):
             
             
     # lock.acquire()
-    print task_rowid
     if profit_found:
         thread_conn[threading.current_thread().name]['conn'].execute("INSERT OR IGNORE INTO Holderprofit VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", profit_entry)
     thread_conn[threading.current_thread().name]['conn'].execute("DELETE FROM Unfinishedtasks WHERE rowid = ?", (task_rowid, ))
@@ -113,7 +112,6 @@ def multi_thread(threads, method):
                 break
             
             #lock.acquire()
-            print task
             cur.execute("UPDATE Unfinishedtasks SET assigned = ? WHERE rowid = ? ", (1, task_rowid))
             conn.commit()
             #lock.release()

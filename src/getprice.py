@@ -76,12 +76,12 @@ def get_price_all(stockid, startdate, enddate, tried_times = 0, timeout = 3):
             
         return price_all
     except URLError, e:
-        if 'timed out' in str(e) and tried_times <= 10:
+        if 'timed out' in str(e) and tried_times <= 60:
             tried_times += 1
             print 'Time out. Retried %d time(s).' % tried_times
             time.sleep(tried_times*tried_times)
             return get_price_all(stockid, startdate, enddate, tried_times)
-        elif 'failed' in str(e) and tried_times <= 10:
+        elif 'failed' in str(e):
             tried_times += 1
             print 'Network failure. Retried %d time(s).' % tried_times
             time.sleep(tried_times*tried_times)
